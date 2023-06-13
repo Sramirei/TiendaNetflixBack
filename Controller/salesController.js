@@ -15,7 +15,22 @@ exports.getAllSales = (req, res, next) => {
          WHEN v.producto = 'amazon' THEN am.correo
          WHEN v.producto = 'apple' THEN ap.correo
          ELSE NULL
-       END AS correo_producto, v.costo, v.estado, v.fecha
+       END AS correo_producto,
+       CASE 
+         WHEN v.producto = 'netflix' THEN nf.contrasena
+         WHEN v.producto = 'disney' THEN ds.contrasena
+         WHEN v.producto = 'hbo' THEN hb.contrasena
+         WHEN v.producto = 'crunchyroll' THEN cr.contrasena
+         WHEN v.producto = 'plex' THEN px.contrasena
+         WHEN v.producto = 'startplus' THEN sp.contrasena
+         WHEN v.producto = 'paramount' THEN pm.contrasena
+         WHEN v.producto = 'spotify' THEN sf.contrasena
+         WHEN v.producto = 'youtube' THEN yt.contrasena
+         WHEN v.producto = 'amazon' THEN am.contrasena
+         WHEN v.producto = 'apple' THEN ap.contrasena
+         ELSE NULL
+       END AS contrasena,
+       v.costo, v.estado, v.fecha
 FROM ventas v
 JOIN usuario u ON v.cod_usuario = u.cod_usuario
 LEFT JOIN netflix nf ON v.cod_producto = nf.id
@@ -42,6 +57,7 @@ ORDER BY v.cod_ventas DESC`;
   });
 };
 
+
 exports.getOneSale = (req, res, next) => {
   const { cod_ventas } = req.params;
   const sql = `SELECT v.cod_ventas, v.cod_usuario, v.numero_factura, CONCAT(u.nombre, ' ', u.apellido) AS nombre_usuario, v.producto, v.pantalla, 
@@ -58,7 +74,22 @@ exports.getOneSale = (req, res, next) => {
          WHEN v.producto = 'amazon' THEN am.correo
          WHEN v.producto = 'apple' THEN ap.correo
          ELSE NULL
-       END AS correo_producto, v.costo, v.estado, v.fecha
+       END AS correo_producto,
+       CASE 
+         WHEN v.producto = 'netflix' THEN nf.contrasena
+         WHEN v.producto = 'disney' THEN ds.contrasena
+         WHEN v.producto = 'hbo' THEN hb.contrasena
+         WHEN v.producto = 'crunchyroll' THEN cr.contrasena
+         WHEN v.producto = 'plex' THEN px.contrasena
+         WHEN v.producto = 'startplus' THEN sp.contrasena
+         WHEN v.producto = 'paramount' THEN pm.contrasena
+         WHEN v.producto = 'spotify' THEN sf.contrasena
+         WHEN v.producto = 'youtube' THEN yt.contrasena
+         WHEN v.producto = 'amazon' THEN am.contrasena
+         WHEN v.producto = 'apple' THEN ap.contrasena
+         ELSE NULL
+       END AS contrasena,
+       v.costo, v.estado, v.fecha
 FROM ventas v
 JOIN usuario u ON v.cod_usuario = u.cod_usuario
 LEFT JOIN netflix nf ON v.cod_producto = nf.id
@@ -86,6 +117,7 @@ ORDER BY v.cod_ventas DESC`;
     }
   });
 };
+
 
 exports.createdSale = async (req, res, next) => {
   try {

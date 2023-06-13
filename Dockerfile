@@ -13,6 +13,13 @@ RUN npm install
 # Copia el código fuente de la aplicación al directorio de trabajo
 COPY . .
 
+# Instala el paquete tzdata para configurar la zona horaria
+RUN apt-get update && \
+    apt-get install -y tzdata
+
+# Configura la zona horaria deseada
+ENV TZ=America/Bogota
+
 # Expone el puerto en el que la aplicación estará escuchando
 EXPOSE 9000
 

@@ -30,7 +30,7 @@ exports.getAllSales = (req, res, next) => {
          WHEN v.producto = 'apple' THEN ap.contrasena
          ELSE NULL
        END AS contrasena,
-       v.costo, v.estado, v.fecha
+       v.costo, v.estado, v.fecha, v.perfil
 FROM ventas v
 JOIN usuario u ON v.cod_usuario = u.cod_usuario
 LEFT JOIN netflix nf ON v.cod_producto = nf.id
@@ -88,7 +88,7 @@ exports.getOneSale = (req, res, next) => {
          WHEN v.producto = 'apple' THEN ap.contrasena
          ELSE NULL
        END AS contrasena,
-       v.costo, v.estado, v.fecha
+       v.costo, v.estado, v.fecha, v.perfil
 FROM ventas v
 JOIN usuario u ON v.cod_usuario = u.cod_usuario
 LEFT JOIN netflix nf ON v.cod_producto = nf.id
@@ -116,6 +116,7 @@ ORDER BY v.cod_ventas DESC`;
     }
   });
 };
+
 
 exports.createdSale = async (req, res, next) => {
   try {
@@ -193,13 +194,23 @@ exports.createdSale = async (req, res, next) => {
                   return next(updateError);
                 }
 
+                let perfilFinal = '';
+                for (let i = 0; i < screenInt; i++) {
+                  let perfil = screenUsed + i + 1;
+                  perfilFinal += perfil + ', ';
+                }
+              
+                const savePerfil = perfilFinal.slice(0, -2)
+                //console.log(savePerfil);
+
                 const createSaleQuery =
-                  "INSERT INTO ventas (numero_factura, cod_usuario, producto, pantalla, cod_producto, costo, estado, fecha) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                  "INSERT INTO ventas (numero_factura, cod_usuario, producto, pantalla, perfil, cod_producto, costo, estado, fecha) VALUES (?, ?, ?, ?,?, ?, ?, ?, ?)";
                 const createSaleValues = [
                   numero_factura,
                   cod_usuario,
                   producto,
                   pantalla,
+                  savePerfil,
                   cod_productoString,
                   costo,
                   estado,

@@ -38,7 +38,7 @@ const corsOptions = {
   optionsSuccessStatus: 200 // Algunos navegadores requieren explícitamente esto para los códigos de estado 204
 };
 
-app.use(cors(corsOptions))
+app.use(cors())
 app.use(morgan('dev')) // This is to see in the console the requests that are being made to the server
 app.use(express.json()) // to convert the incoming data to json format
 app.use(express.urlencoded({ extended: false })) // so it can read json documents coming from html forms

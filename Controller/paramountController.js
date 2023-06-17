@@ -59,11 +59,11 @@ exports.createParamountAccount = async (req, res, next) => {
 
 exports.updateParamountAccount = async (req, res, next) => {
   const { id } = req.params;
-  const { correo, password, pantalla, usado } = req.body;
+  const { correo, contrasena, pantalla, usado } = req.body;
 
   try {
-    const sql = `UPDATE paramount SET correo = IFNULL(?, correo), password = IFNULL(?, password), pantalla = IFNULL(?, pantalla), usado = IFNULL(?, usado) WHERE id = ?`;
-    const values = [correo, password, pantalla, usado, id];
+    const sql = `UPDATE paramount SET correo = IFNULL(?, correo), contrasena = IFNULL(?, contrasena), pantalla = IFNULL(?, pantalla), usado = IFNULL(?, usado) WHERE id = ?`;
+    const values = [correo, contrasena, pantalla, usado, id];
 
     connection.query(sql, values, (error, results) => {
       if (error) {

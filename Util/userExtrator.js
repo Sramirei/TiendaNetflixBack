@@ -10,7 +10,6 @@ module.exports = (req, res, next) => {
 
   try {
     const decodedToken = jwt.verify(token, process.env.SECRET_JWT);
-    console.log(decodedToken.cod_usuario);
 
     if (!token || !decodedToken.cod_usuario) {
       return res.status(401).json({ error: 'Token missing or invalid' });

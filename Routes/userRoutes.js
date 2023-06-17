@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router()
 const controller = require('../Controller/userController')
-const { validateCreateUser } = require('../Validator/user')
 const userExtrator = require('../Util/userExtrator')
 
 /**
@@ -151,7 +150,7 @@ router.get('/verifyToken', controller.verifyToken)
  *                   type: string
  *                   example: User created successfully
  */
-router.post('/user',userExtrator, validateCreateUser, controller.createdUser)
+router.post('/user',userExtrator, controller.createdUser)
 /**
  * @openapi
  * /api/login:
@@ -237,7 +236,6 @@ router.post('/login', controller.login)
  */
 router.put('/user/:cod_usuario',userExtrator, controller.updateUser)
 
-router.put('/users', controller.updateAllUser)
 /**
  * @openapi
  * /api/user/{cod_usuario}:

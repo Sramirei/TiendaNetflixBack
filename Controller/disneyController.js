@@ -103,15 +103,29 @@ exports.updateDisneyAccount = async (req, res, next) => {
 exports.deleteDisneyAccount = (req, res, next) => {
   try {
     const { id } = req.params;
-  const sql = `DELETE FROM disney WHERE id = ${id}`;
+    const sql = `SELECT * FROM disney WHERE id = ${id}`;
 
-  connection.query(sql, error => {
-    if (error) throw error;
-    res.send('Delete Disney Account');
-  });
+    connection.query(sql, (error, results) => {
+      if (error) throw error;
+
+      if (results.length === 0) {
+        res.status(404).send('disney Account not found');
+      } else {
+        const account = results[0];
+        if (account.usado !== '0') {
+          res.status(405).send('Cannot delete disney Account. Account is unused.');
+        } else {
+          const deleteSql = `DELETE FROM disney WHERE id = ${id}`;
+          connection.query(deleteSql, deleteError => {
+            if (deleteError) throw deleteError;
+            res.send('Delete disney Account');
+          });
+        }
+      }
+    });
   } catch (error) {
-    res.send('Error: ' + JSON.stringify(error));
-    console.error(error)
+    res.status(500).send('Error: ' + JSON.stringify(error));
+    console.error(error);
     next(error);
   }
 }

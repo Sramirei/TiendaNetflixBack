@@ -83,14 +83,28 @@ exports.updateParamountAccount = async (req, res, next) => {
 exports.deleteParamountAccount = (req, res, next) => {
   try {
     const { id } = req.params;
-    const sql = `DELETE FROM paramount WHERE id = ${id}`;
+    const sql = `SELECT * FROM paramount WHERE id = ${id}`;
 
-    connection.query(sql, (error) => {
+    connection.query(sql, (error, results) => {
       if (error) throw error;
-      res.send('Delete Paramount Account');
+
+      if (results.length === 0) {
+        res.status(404).send('paramount Account not found');
+      } else {
+        const account = results[0];
+        if (account.usado !== '0') {
+          res.status(405).send('Cannot delete paramount Account. Account is unused.');
+        } else {
+          const deleteSql = `DELETE FROM paramount WHERE id = ${id}`;
+          connection.query(deleteSql, deleteError => {
+            if (deleteError) throw deleteError;
+            res.send('Delete paramount Account');
+          });
+        }
+      }
     });
   } catch (error) {
-    res.send('Error: ' + JSON.stringify(error));
+    res.status(500).send('Error: ' + JSON.stringify(error));
     console.error(error);
     next(error);
   }

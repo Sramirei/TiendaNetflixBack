@@ -37,7 +37,6 @@ exports.getOneAppleAccount = (req, res, next) => {
 
 exports.createdAppleAccount = async (req, res, next) => {
   try {
-
     const {
       correo,
       contrasena,
@@ -45,23 +44,23 @@ exports.createdAppleAccount = async (req, res, next) => {
       usado
     } = req.body;
 
-    // Proceed to create the user
-    const createAmazonAccountQuery =
-      'INSERT INTO apple (correo, contrasena, pantalla, usado) VALUES (?, ?, ?,?)';
-    const createAmazonAccountValues = [
+    // Proceder a crear el usuario
+    const createAppleAccountQuery =
+      'INSERT INTO apple (correo, contrasena, pantalla, usado) VALUES (?, ?, ?, ?)';
+    const createAppleAccountValues = [
       correo,
       contrasena,
       pantalla,
       usado
     ];
 
-    connection.query(createAmazonAccountQuery, createAmazonAccountValues, (error, results) => {
+    connection.query(createAppleAccountQuery, createAppleAccountValues, (error, results) => {
       if (error) {
-        console.error('Error inserting Amazon Account: ', error);
-        res.status(500).send('Server error');
+        console.error('Error inserting Apple Account: ', error);
+        res.status(500).send('Error del servidor');
         return;
       }
-      res.send('Amazon Account created successfully');
+      res.send('Apple Account created successfully');
     });
 
   } catch (error) {
@@ -107,18 +106,28 @@ exports.updateAppleAccount = async (req, res, next) => {
 exports.deleteAppleAccount = (req, res, next) => {
   try {
     const { id } = req.params;
-    const sql = `DELETE FROM apple WHERE id = ${id}`;
+    const sql = `SELECT * FROM apple WHERE id = ${id}`;
 
-    connection.query(sql, error => {
-      if (error) {
-        console.error(error);
-        res.status(500).send('Server error');
-        return;
+    connection.query(sql, (error, results) => {
+      if (error) throw error;
+
+      if (results.length === 0) {
+        res.status(404).send('apple Account not found');
+      } else {
+        const account = results[0];
+        if (account.usado !== '0') {
+          res.status(405).send('Cannot delete apple Account. Account is unused.');
+        } else {
+          const deleteSql = `DELETE FROM apple WHERE id = ${id}`;
+          connection.query(deleteSql, deleteError => {
+            if (deleteError) throw deleteError;
+            res.send('Delete apple Account');
+          });
+        }
       }
-      res.send('Delete Amazon Account');
     });
   } catch (error) {
-    res.status(500).send('Error: ' + error.message);
+    res.status(500).send('Error: ' + JSON.stringify(error));
     console.error(error);
     next(error);
   }

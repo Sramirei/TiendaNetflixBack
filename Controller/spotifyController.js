@@ -83,14 +83,28 @@ exports.updateSpotifyAccount = async (req, res, next) => {
 exports.deleteSpotifyAccount = (req, res, next) => {
   try {
     const { id } = req.params;
-    const sql = `DELETE FROM spotify WHERE id = ${id}`;
+    const sql = `SELECT * FROM spotify WHERE id = ${id}`;
 
-    connection.query(sql, (error) => {
+    connection.query(sql, (error, results) => {
       if (error) throw error;
-      res.send('Delete Spotify Account');
+
+      if (results.length === 0) {
+        res.status(404).send('spotify Account not found');
+      } else {
+        const account = results[0];
+        if (account.usado !== '0') {
+          res.status(405).send('Cannot delete spotify Account. Account is unused.');
+        } else {
+          const deleteSql = `DELETE FROM spotify WHERE id = ${id}`;
+          connection.query(deleteSql, deleteError => {
+            if (deleteError) throw deleteError;
+            res.send('Delete spotify Account');
+          });
+        }
+      }
     });
   } catch (error) {
-    res.send('Error: ' + JSON.stringify(error));
+    res.status(500).send('Error: ' + JSON.stringify(error));
     console.error(error);
     next(error);
   }

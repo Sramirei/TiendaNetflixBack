@@ -1,4 +1,4 @@
-const { connection } = require('../DataBase/db');
+const { connection } = require("../DataBase/db");
 
 exports.getAllSales = (req, res, next) => {
   const sql = `SELECT v.cod_ventas, v.cod_usuario, v.numero_factura, CONCAT(u.nombre, ' ', u.apellido) AS nombre_usuario, v.producto, v.pantalla, 
@@ -51,12 +51,11 @@ ORDER BY v.cod_ventas DESC`;
     if (results.length > 0) {
       res.json(results);
     } else {
-      res.status(404).send('No Sales found.');
+      res.status(404).send("No Sales found.");
       next();
     }
   });
 };
-
 
 exports.getOneSale = (req, res, next) => {
   const { cod_ventas } = req.params;
@@ -112,12 +111,11 @@ ORDER BY v.cod_ventas DESC`;
     if (result.length > 0) {
       res.json(result);
     } else {
-      res.status(404).send('No Sale found.');
+      res.status(404).send("No Sale found.");
       next();
     }
   });
 };
-
 
 exports.createdSale = async (req, res, next) => {
   try {
@@ -130,20 +128,15 @@ exports.createdSale = async (req, res, next) => {
     const seconds = date.getSeconds();
     const dateString = `${year}/${month}/${day} ${hours}:${minutes}:${seconds}`;
 
-    const {
-      cod_usuario,
-      producto,
-      pantalla,
-      costo,
-      estado,
-    } = req.body;
+    const { cod_usuario, producto, pantalla, costo, estado } = req.body;
 
     // Obtener el último número de factura registrado en la tabla ventas
-    const getLastInvoiceNumberQuery = 'SELECT numero_factura FROM ventas ORDER BY numero_factura DESC LIMIT 1';
+    const getLastInvoiceNumberQuery =
+      "SELECT numero_factura FROM ventas ORDER BY numero_factura DESC LIMIT 1";
 
     connection.query(getLastInvoiceNumberQuery, (error, results) => {
       if (error) {
-        console.error('Error getting last invoice number: ', error);
+        console.error("Error getting last invoice number: ", error);
         return next(error);
       }
 
@@ -159,76 +152,90 @@ exports.createdSale = async (req, res, next) => {
       const selectProductQuery = `SELECT * FROM ${producto} WHERE pantalla != 'usado'`;
       const selectProductValues = [];
 
-      connection.query(selectProductQuery, selectProductValues, (selectError, selectResults) => {
-        if (selectError) {
-          console.error('Error selecting Product: ', selectError);
-          return next(selectError);
-        }
+      connection.query(
+        selectProductQuery,
+        selectProductValues,
+        (selectError, selectResults) => {
+          if (selectError) {
+            console.error("Error selecting Product: ", selectError);
+            return next(selectError);
+          }
 
-        let selectedProduct;
+          let selectedProduct;
 
-        if (selectResults.length > 0) {
-          selectedProduct = selectResults.find((product) => {
-            const screenInt = parseInt(pantalla);
-            const screenUsed = product.usado ? parseInt(product.usado) : 0;
-            return (screenInt + screenUsed) <= 4;
-          });
-        }
-
-        if (selectedProduct) {
-          const cod_producto = selectedProduct.id;
-          const screenInt = parseInt(pantalla);
-          const screenUsed = selectedProduct.usado ? parseInt(selectedProduct.usado) : 0;
-          const screenUpdate = screenInt + screenUsed;
-          const screenFinally = screenUpdate.toString();
-          const cod_productoString = cod_producto.toString();
-
-          const updateProductQuery = `UPDATE ${producto} SET usado = ? WHERE id = ?`;
-          const updateProductValues = [screenFinally, cod_producto];
-
-          connection.query(updateProductQuery, updateProductValues, (updateError) => {
-            if (updateError) {
-              console.error('Error updating Product: ', updateError);
-              return next(updateError);
-            }
-
-            const createSaleQuery =
-              'INSERT INTO ventas (numero_factura, cod_usuario, producto, pantalla, cod_producto, costo, estado, fecha) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
-            const createSaleValues = [
-              numero_factura,
-              cod_usuario,
-              producto,
-              pantalla,
-              cod_productoString,
-              costo,
-              estado,
-              dateString,
-            ];
-
-            connection.query(createSaleQuery, createSaleValues, (createError, createResults) => {
-              if (createError) {
-                console.error('Error inserting Sale: ', createError);
-                return next(createError);
-              }
-
-              const createdSale = {
-                numero_factura,
-                cod_usuario,
-                producto,
-                pantalla,
-                cod_producto: cod_productoString,
-                costo,
-                estado,
-                fecha: dateString,
-              };
-
-              res.json(createdSale);
+          if (selectResults.length > 0) {
+            selectedProduct = selectResults.find((product) => {
+              const screenInt = parseInt(pantalla);
+              const screenUsed = product.usado ? parseInt(product.usado) : 0;
+              return screenInt + screenUsed <= 4;
             });
-          });
-        } else {
-          res.status(404).send('No available accounts found');
+          }
+
+          if (selectedProduct) {
+            const cod_producto = selectedProduct.id;
+            const screenInt = parseInt(pantalla);
+            const screenUsed = selectedProduct.usado
+              ? parseInt(selectedProduct.usado)
+              : 0;
+            const screenUpdate = screenInt + screenUsed;
+            const screenFinally = screenUpdate.toString();
+            const cod_productoString = cod_producto.toString();
+
+            const updateProductQuery = `UPDATE ${producto} SET usado = ? WHERE id = ?`;
+            const updateProductValues = [screenFinally, cod_producto];
+
+            connection.query(
+              updateProductQuery,
+              updateProductValues,
+              (updateError) => {
+                if (updateError) {
+                  console.error("Error updating Product: ", updateError);
+                  return next(updateError);
+                }
+
+                const createSaleQuery =
+                  "INSERT INTO ventas (numero_factura, cod_usuario, producto, pantalla, cod_producto, costo, estado, fecha) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                const createSaleValues = [
+                  numero_factura,
+                  cod_usuario,
+                  producto,
+                  pantalla,
+                  cod_productoString,
+                  costo,
+                  estado,
+                  dateString,
+                ];
+
+                connection.query(
+                  createSaleQuery,
+                  createSaleValues,
+                  (createError, createResults) => {
+                    if (createError) {
+                      console.error("Error inserting Sale: ", createError);
+                      return next(createError);
+                    }
+
+                    const createdSale = {
+                      numero_factura,
+                      cod_usuario,
+                      producto,
+                      pantalla,
+                      cod_producto: cod_productoString,
+                      costo,
+                      estado,
+                      fecha: dateString,
+                    };
+
+                    res.json(createdSale);
+                  }
+                );
+              }
+            );
+          } else {
+            res.status(404).send("No available accounts found");
+          }
         }
-      });
+      );
     });
   } catch (error) {
     console.error(error);
@@ -236,46 +243,44 @@ exports.createdSale = async (req, res, next) => {
   }
 };
 
-
 exports.updateSale = async (req, res, next) => {
   const { cod_ventas } = req.params;
 
   const {
     numero_factura,
+    cod_usuario,
+    producto,
+    pantalla,
+    cod_producto,
+    costo,
+    estado,
+    fecha,
+  } = req.body;
+
+  try {
+    const sql = `UPDATE ventas SET numero_factura = IFNULL(?, numero_factura), cod_usuario = IFNULL(?, cod_usuario), producto = IFNULL(?, producto), pantalla = IFNULL(?, pantalla), cod_producto = IFNULL(?, cod_producto), costo = IFNULL(?, costo), estado = IFNULL(?, estado), fecha = IFNULL(?, fecha) WHERE cod_ventas = ?`;
+    const values = [
+      numero_factura,
       cod_usuario,
       producto,
       pantalla,
       cod_producto,
       costo,
       estado,
-      fecha
-  } = req.body;
-
-  try {
-
-    const sql = `UPDATE ventas SET numero_factura = IFNULL(?, numero_factura), cod_usuario = IFNULL(?, cod_usuario), producto = IFNULL(?, producto), pantalla = IFNULL(?, pantalla), cod_producto = IFNULL(?, cod_producto), costo = IFNULL(?, costo), estado = IFNULL(?, estado), fecha = IFNULL(?, fecha) WHERE cod_ventas = ?`;
-    const values = [
-        numero_factura,
-        cod_usuario,
-        producto,
-        pantalla,
-        cod_producto,
-        costo,
-        estado,
-        fecha,
-        cod_ventas
+      fecha,
+      cod_ventas,
     ];
 
     connection.query(sql, values, (error, results) => {
       if (error) {
-        console.error('Error updating Sale: ', error);
-        res.status(500).send('Error en el server');
+        console.error("Error updating Sale: ", error);
+        res.status(500).send("Error en el server");
         return;
       }
-      res.send('Sale updated successfully');
+      res.send("Sale updated successfully");
     });
   } catch (error) {
-    res.send('Error: ' + JSON.stringify(error)).status(500);
+    res.send("Error: " + JSON.stringify(error)).status(500);
     console.error(error);
     next(error);
   }
@@ -284,15 +289,15 @@ exports.updateSale = async (req, res, next) => {
 exports.deleteSale = (req, res, next) => {
   try {
     const { cod_ventas } = req.params;
-  const sql = `DELETE FROM ventas WHERE cod_ventas = ${cod_ventas}`;
+    const sql = `DELETE FROM ventas WHERE cod_ventas = ${cod_ventas}`;
 
-  connection.query(sql, error => {
-    if (error) throw error;
-    res.send('Delete Sale');
-  });
+    connection.query(sql, (error) => {
+      if (error) throw error;
+      res.send("Delete Sale");
+    });
   } catch (error) {
-    res.send('Error: ' + JSON.stringify(error));
-    console.error(error)
+    res.send("Error: " + JSON.stringify(error));
+    console.error(error);
     next(error);
   }
-}
+};

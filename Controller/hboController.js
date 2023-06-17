@@ -57,7 +57,6 @@ exports.createHBOAccount = async (req, res, next) => {
   }
 };
 
-
 exports.updateHBOAccount = async (req, res, next) => {
   const { id } = req.params;
   const { correo, contrasena, pantalla, usado } = req.body;
@@ -84,14 +83,28 @@ exports.updateHBOAccount = async (req, res, next) => {
 exports.deleteHBOAccount = (req, res, next) => {
   try {
     const { id } = req.params;
-    const sql = `DELETE FROM hbo WHERE id = ${id}`;
+    const sql = `SELECT * FROM hbo WHERE id = ${id}`;
 
-    connection.query(sql, (error) => {
+    connection.query(sql, (error, results) => {
       if (error) throw error;
-      res.send('Delete HBO Account');
+
+      if (results.length === 0) {
+        res.status(404).send('hbo Account not found');
+      } else {
+        const account = results[0];
+        if (account.usado !== '0') {
+          res.status(405).send('Cannot delete hbo Account. Account is unused.');
+        } else {
+          const deleteSql = `DELETE FROM hbo WHERE id = ${id}`;
+          connection.query(deleteSql, deleteError => {
+            if (deleteError) throw deleteError;
+            res.send('Delete hbo Account');
+          });
+        }
+      }
     });
   } catch (error) {
-    res.send('Error: ' + JSON.stringify(error));
+    res.status(500).send('Error: ' + JSON.stringify(error));
     console.error(error);
     next(error);
   }

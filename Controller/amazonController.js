@@ -101,15 +101,29 @@ exports.updateAmazonAccount = async (req, res, next) => {
 exports.deleteAmazonAccount = (req, res, next) => {
   try {
     const { id } = req.params;
-  const sql = `DELETE FROM amazon WHERE id = ${id}`;
+    const sql = `SELECT * FROM amazon WHERE id = ${id}`;
 
-  connection.query(sql, error => {
-    if (error) throw error;
-    res.send('Delete Amazon Account');
-  });
+    connection.query(sql, (error, results) => {
+      if (error) throw error;
+
+      if (results.length === 0) {
+        res.status(404).send('Amazon Account not found');
+      } else {
+        const account = results[0];
+        if (account.usado !== '0') {
+          res.status(405).send('Cannot delete Amazon Account. Account is not unused.');
+        } else {
+          const deleteSql = `DELETE FROM amazon WHERE id = ${id}`;
+          connection.query(deleteSql, deleteError => {
+            if (deleteError) throw deleteError;
+            res.send('Delete Amazon Account');
+          });
+        }
+      }
+    });
   } catch (error) {
-    res.send('Error: ' + JSON.stringify(error));
-    console.error(error)
+    res.status(500).send('Error: ' + JSON.stringify(error));
+    console.error(error);
     next(error);
   }
-}
+};

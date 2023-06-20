@@ -117,7 +117,6 @@ ORDER BY v.cod_ventas DESC`;
   });
 };
 
-
 exports.createdSale = async (req, res, next) => {
   try {
     const date = new Date();
@@ -231,6 +230,7 @@ exports.createdSale = async (req, res, next) => {
                       cod_usuario,
                       producto,
                       pantalla,
+                      perfil : savePerfil,
                       cod_producto: cod_productoString,
                       costo,
                       estado,

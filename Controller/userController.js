@@ -117,15 +117,15 @@ exports.updateUser = async (req, res, next) => {
   } = req.body;
 
   try {
-    let passwordHash = '';
+    let passwordHash = null;
 
-    if (contrasena !== undefined) {
-      // Si se proporciona una nueva contraseña, generar el hash
+    if (contrasena !== undefined && contrasena !== '') {
+      // Si se proporciona una nueva contraseña no vacía, generar el hash
       const saltRounds = 10;
       passwordHash = await bcrypt.hash(contrasena, saltRounds);
     }
 
-    const sql = `UPDATE usuario SET identificacion = IFNULL(?, identificacion), nombre = IFNULL(?, nombre), apellido = IFNULL(?, apellido), celular = IFNULL(?, celular), correo = IFNULL(?, correo), empresa = IFNULL(?, empresa), login = IFNULL(?, login), contrasena = IF(? IS NULL, contrasena, ?), perfil = IFNULL(?, perfil), estado = ?, cod_precio = IFNULL(?, cod_precio) WHERE cod_usuario = ?`;
+    const sql = `UPDATE usuario SET identificacion = IFNULL(?, identificacion), nombre = IFNULL(?, nombre), apellido = IFNULL(?, apellido), celular = IFNULL(?, celular), correo = IFNULL(?, correo), empresa = IFNULL(?, empresa), login = IFNULL(?, login), contrasena = IF(? IS NULL OR ? = '', contrasena, ?), perfil = IFNULL(?, perfil), estado = ?, cod_precio = IFNULL(?, cod_precio) WHERE cod_usuario = ?`;
     const values = [
       identificacion,
       nombre,
@@ -134,6 +134,7 @@ exports.updateUser = async (req, res, next) => {
       correo,
       empresa,
       login,
+      contrasena,
       contrasena,
       passwordHash,
       perfil,
@@ -155,108 +156,7 @@ exports.updateUser = async (req, res, next) => {
     console.error(error);
     next(error);
   }
-}; 
-
-exports.updateAllUser = async (req, res, next) => {
-  const {
-    identificacion,
-    nombre,
-    apellido,
-    celular,
-    correo,
-    empresa,
-    login,
-    contrasena,
-    perfil,
-    estado,
-    cod_precio
-  } = req.body;
-
-  try {
-    let passwordHash = '';
-
-    if (contrasena !== undefined) {
-      // Si se proporciona una nueva contraseña, generar el hash
-      const saltRounds = 10;
-      passwordHash = await bcrypt.hash(contrasena, saltRounds);
-    }
-
-    let sql = `UPDATE usuario SET`;
-    const values = [];
-
-    if (identificacion !== undefined) {
-      sql += ` identificacion = ?,`;
-      values.push(identificacion);
-    }
-
-    if (nombre !== undefined) {
-      sql += ` nombre = ?,`;
-      values.push(nombre);
-    }
-
-    if (apellido !== undefined) {
-      sql += ` apellido = ?,`;
-      values.push(apellido);
-    }
-
-    if (celular !== undefined) {
-      sql += ` celular = ?,`;
-      values.push(celular);
-    }
-
-    if (correo !== undefined) {
-      sql += ` correo = ?,`;
-      values.push(correo);
-    }
-
-    if (empresa !== undefined) {
-      sql += ` empresa = ?,`;
-      values.push(empresa);
-    }
-
-    if (login !== undefined) {
-      sql += ` login = ?,`;
-      values.push(login);
-    }
-
-    if (contrasena !== undefined) {
-      sql += ` contrasena = IF(? IS NULL, contrasena, ?),`;
-      values.push(contrasena, passwordHash);
-    }
-
-    if (perfil !== undefined) {
-      sql += ` perfil = ?,`;
-      values.push(perfil);
-    }
-
-    if (estado !== undefined) {
-      sql += ` estado = ?,`;
-      values.push(estado);
-    }
-
-    if (cod_precio !== undefined) {
-      sql += ` cod_precio = ?,`;
-      values.push(cod_precio);
-    }
-
-    // Eliminar la última coma de la consulta SQL
-    sql = sql.slice(0, -1);
-
-    connection.query(sql, values, (error, results) => {
-      if (error) {
-        console.error('Error al actualizar los usuarios: ', error);
-        res.status(500).send('Error en el servidor');
-        return;
-      }
-      res.send('Usuarios actualizados correctamente');
-    });
-  } catch (error) {
-    res.status(500).send('Error: ' + JSON.stringify(error));
-    console.error(error);
-    next(error);
-  }
-}; 
-
+};
 
 exports.deleteUser = (req, res, next) => {
   try {

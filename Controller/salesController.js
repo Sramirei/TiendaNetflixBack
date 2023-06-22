@@ -13,7 +13,7 @@ exports.getAllSales = (req, res, next) => {
          WHEN v.producto = 'spotify' THEN sf.correo
          WHEN v.producto = 'youtube' THEN yt.correo
          WHEN v.producto = 'amazon' THEN am.correo
-         WHEN v.producto = 'apple' THEN ap.correo
+         WHEN v.producto = 'directv' THEN ap.correo
          ELSE NULL
        END AS correo_producto,
        CASE 
@@ -27,7 +27,7 @@ exports.getAllSales = (req, res, next) => {
          WHEN v.producto = 'spotify' THEN sf.contrasena
          WHEN v.producto = 'youtube' THEN yt.contrasena
          WHEN v.producto = 'amazon' THEN am.contrasena
-         WHEN v.producto = 'apple' THEN ap.contrasena
+         WHEN v.producto = 'directv' THEN ap.contrasena
          ELSE NULL
        END AS contrasena,
        v.costo, v.estado, v.fecha, v.perfil
@@ -43,7 +43,7 @@ LEFT JOIN paramount pm ON v.cod_producto = pm.id
 LEFT JOIN spotify sf ON v.cod_producto = sf.id
 LEFT JOIN youtube yt ON v.cod_producto = yt.id
 LEFT JOIN amazon am ON v.cod_producto = am.id
-LEFT JOIN apple ap ON v.cod_producto = ap.id
+LEFT JOIN directv ap ON v.cod_producto = ap.id
 ORDER BY v.cod_ventas DESC`;
 
   connection.query(sql, (error, results) => {
@@ -71,7 +71,7 @@ exports.getOneSale = (req, res, next) => {
          WHEN v.producto = 'spotify' THEN sf.correo
          WHEN v.producto = 'youtube' THEN yt.correo
          WHEN v.producto = 'amazon' THEN am.correo
-         WHEN v.producto = 'apple' THEN ap.correo
+         WHEN v.producto = 'directv' THEN ap.correo
          ELSE NULL
        END AS correo_producto,
        CASE 
@@ -85,7 +85,7 @@ exports.getOneSale = (req, res, next) => {
          WHEN v.producto = 'spotify' THEN sf.contrasena
          WHEN v.producto = 'youtube' THEN yt.contrasena
          WHEN v.producto = 'amazon' THEN am.contrasena
-         WHEN v.producto = 'apple' THEN ap.contrasena
+         WHEN v.producto = 'directv' THEN ap.contrasena
          ELSE NULL
        END AS contrasena,
        v.costo, v.estado, v.fecha, v.perfil
@@ -101,7 +101,7 @@ LEFT JOIN paramount pm ON v.cod_producto = pm.id
 LEFT JOIN spotify sf ON v.cod_producto = sf.id
 LEFT JOIN youtube yt ON v.cod_producto = yt.id
 LEFT JOIN amazon am ON v.cod_producto = am.id
-LEFT JOIN apple ap ON v.cod_producto = ap.id
+LEFT JOIN directv ap ON v.cod_producto = ap.id
 WHERE v.cod_ventas = ${cod_ventas}
 ORDER BY v.cod_ventas DESC`;
 
@@ -300,14 +300,48 @@ exports.updateSale = async (req, res, next) => {
 exports.deleteSale = (req, res, next) => {
   try {
     const { cod_ventas } = req.params;
-    const sql = `DELETE FROM ventas WHERE cod_ventas = ${cod_ventas}`;
 
-    connection.query(sql, (error) => {
-      if (error) throw error;
-      res.send("Delete Sale");
+    // Obtener los datos de la venta que se va a eliminar
+    const getSaleQuery = `SELECT * FROM ventas WHERE cod_ventas = ${cod_ventas}`;
+
+    connection.query(getSaleQuery, (error, saleResults) => {
+      if (error) {
+        console.error("Error getting sale: ", error);
+        return next(error);
+      }
+
+      if (saleResults.length === 0) {
+        // No se encontró la venta
+        return res.status(404).send("Sale not found");
+      }
+
+      const sale = saleResults[0];
+      const { pantalla, cod_producto } = sale;
+
+      // Actualizar la tabla del servicio
+      const updateServiceQuery = `UPDATE ${sale.producto} SET usado = usado - ? WHERE id = ?`;
+      const updateServiceValues = [pantalla, cod_producto];
+
+      connection.query(updateServiceQuery, updateServiceValues, (updateError) => {
+        if (updateError) {
+          console.error("Error updating service: ", updateError);
+          return next(updateError);
+        }
+
+        // Eliminar la venta de la tabla de ventas
+        const deleteSaleQuery = `DELETE FROM ventas WHERE cod_ventas = ${cod_ventas}`;
+
+        connection.query(deleteSaleQuery, (deleteError) => {
+          if (deleteError) {
+            console.error("Error deleting sale: ", deleteError);
+            return next(deleteError);
+          }
+
+          res.send("Sale deleted");
+        });
+      });
     });
   } catch (error) {
-    res.send("Error: " + JSON.stringify(error));
     console.error(error);
     next(error);
   }

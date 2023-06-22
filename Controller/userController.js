@@ -175,7 +175,6 @@ exports.deleteUser = (req, res, next) => {
 }
 
 exports.login = async (req, res, next) => {
-
   const { login, contrasena } = req.body;
 
   console.log(login + ' ' + contrasena);
@@ -195,6 +194,13 @@ exports.login = async (req, res, next) => {
     }
 
     const user = results[0];
+
+    if (user.estado == 'Inactivo') {
+      return res.status(401).json({
+        error: 'User is inactive'
+      });
+    }
+
     const passwordCorrect = await bcrypt.compare(contrasena, user.contrasena);
 
     if (!passwordCorrect) {

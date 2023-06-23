@@ -1,7 +1,7 @@
 const { connection } = require("../DataBase/db");
 
 exports.getAllSales = (req, res, next) => {
-  const sql = `SELECT v.cod_ventas, v.cod_usuario, v.numero_factura, CONCAT(u.nombre, ' ', u.apellido) AS nombre_usuario, v.producto, v.pantalla, 
+  const sql = `SELECT v.cod_ventas, v.cod_usuario, u.identificacion, v.numero_factura, CONCAT(u.nombre, ' ', u.apellido) AS nombre_usuario, v.producto, v.pantalla, 
        CASE 
          WHEN v.producto = 'netflix' THEN nf.correo
          WHEN v.producto = 'disney' THEN ds.correo
@@ -59,7 +59,7 @@ ORDER BY v.cod_ventas DESC`;
 
 exports.getOneSale = (req, res, next) => {
   const { cod_ventas } = req.params;
-  const sql = `SELECT v.cod_ventas, v.cod_usuario, v.numero_factura, CONCAT(u.nombre, ' ', u.apellido) AS nombre_usuario, v.producto, v.pantalla, 
+  const sql = `SELECT v.cod_ventas, v.cod_usuario,u.identificacion, v.numero_factura, CONCAT(u.nombre, ' ', u.apellido) AS nombre_usuario, v.producto, v.pantalla, 
        CASE 
          WHEN v.producto = 'netflix' THEN nf.correo
          WHEN v.producto = 'disney' THEN ds.correo

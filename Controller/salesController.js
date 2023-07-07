@@ -198,9 +198,16 @@ exports.createdSale = async (req, res, next) => {
                   let perfil = screenUsed + i + 1;
                   perfilFinal += perfil + ', ';
                 }
-              
-                const savePerfil = perfilFinal.slice(0, -2)
-                //console.log(savePerfil);
+                let savePerfil
+
+                if(producto === 'directv'){
+                  savePerfil = '1,2'
+                } else if (producto === 'spotify' || producto === 'youtube'){
+                  savePerfil = '1'
+                } else {
+                  savePerfil = perfilFinal.slice(0, -2)
+                }
+                console.log(savePerfil);
 
                 const createSaleQuery =
                   "INSERT INTO ventas (numero_factura, cod_usuario, producto, pantalla, perfil, cod_producto, costo, estado, fecha) VALUES (?, ?, ?, ?,?, ?, ?, ?, ?)";

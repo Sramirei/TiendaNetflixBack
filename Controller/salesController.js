@@ -1,4 +1,5 @@
 const { connection } = require("../DataBase/db");
+const { promisify } = require("util");
 
 exports.getAllSales = (req, res, next) => {
   const sql = `SELECT v.cod_ventas, v.cod_usuario, u.identificacion, v.numero_factura, CONCAT(u.nombre, ' ', u.apellido) AS nombre_usuario, v.producto, v.pantalla, 
@@ -120,150 +121,104 @@ ORDER BY v.cod_ventas DESC`;
 exports.createdSale = async (req, res, next) => {
   try {
     const date = new Date();
-    const day = date.getDate();
-    const month = date.getMonth() + 1; // Los meses comienzan desde 0
-    const year = date.getFullYear();
-    const hours = date.getHours();
-    const minutes = date.getMinutes();
-    const seconds = date.getSeconds();
-    const dateString = `${year}/${month}/${day} ${hours}:${minutes}:${seconds}`;
+    const dateString = date.toISOString().slice(0, 19).replace("T", " "); // Formato ISO para la fecha y hora
 
     const { cod_usuario, producto, pantalla, costo, estado } = req.body;
 
     // Obtener el último número de factura registrado en la tabla ventas
     const getLastInvoiceNumberQuery =
-      "SELECT numero_factura FROM ventas ORDER BY numero_factura DESC LIMIT 1";
+      "SELECT COALESCE(MAX(numero_factura), 0) AS lastInvoice FROM ventas";
+    const lastInvoiceNumberResult = await promisify(connection.query).call(
+      connection,
+      getLastInvoiceNumberQuery
+    );
+    const numero_factura = lastInvoiceNumberResult[0].lastInvoice + 1;
 
-    connection.query(getLastInvoiceNumberQuery, (error, results) => {
-      if (error) {
-        console.error("Error getting last invoice number: ", error);
-        return next(error);
-      }
-
-      let numero_factura;
-      if (results.length > 0) {
-        const lastInvoiceNumber = results[0].numero_factura;
-        numero_factura = lastInvoiceNumber + 1;
-      } else {
-        // Si no hay registros en la tabla ventas, el número de factura será 1
-        numero_factura = 1;
-      }
-
-      const selectProductQuery = `SELECT * FROM ${producto} WHERE pantalla != 'usado'`;
-      const selectProductValues = [];
-
-      connection.query(
-        selectProductQuery,
-        selectProductValues,
-        (selectError, selectResults) => {
-          if (selectError) {
-            console.error("Error selecting Product: ", selectError);
-            return next(selectError);
-          }
-
-          let selectedProduct;
-
-          if (selectResults.length > 0) {
-            selectedProduct = selectResults.find((product) => {
-              const screenInt = parseInt(pantalla);
-              const screenUsed = product.usado ? parseInt(product.usado) : 0;
-              return screenInt + screenUsed <= 4;
-            });
-          }
-
-          if (selectedProduct) {
-            const cod_producto = selectedProduct.id;
-            const screenInt = parseInt(pantalla);
-            const screenUsed = selectedProduct.usado
-              ? parseInt(selectedProduct.usado)
-              : 0;
-            const screenUpdate = screenInt + screenUsed;
-            const screenFinally = screenUpdate.toString();
-            const cod_productoString = cod_producto.toString();
-
-            const updateProductQuery = `UPDATE ${producto} SET usado = ? WHERE id = ?`;
-            const updateProductValues = [screenFinally, cod_producto];
-
-            connection.query(
-              updateProductQuery,
-              updateProductValues,
-              (updateError) => {
-                if (updateError) {
-                  console.error("Error updating Product: ", updateError);
-                  return next(updateError);
-                }
-
-                let perfilFinal = '';
-                for (let i = 0; i < screenInt; i++) {
-                  let perfil = screenUsed + i + 1;
-                  perfilFinal += perfil + ', ';
-                }
-                let savePerfil
-
-                if(producto === 'directv'){
-                  savePerfil = '1,2'
-                } else if (producto === 'spotify' || producto === 'youtube'){
-                  savePerfil = '1'
-                } else {
-                  savePerfil = perfilFinal.slice(0, -2)
-                }
-                console.log(savePerfil);
-
-                const createSaleQuery =
-                  "INSERT INTO ventas (numero_factura, cod_usuario, producto, pantalla, perfil, cod_producto, costo, estado, fecha) VALUES (?, ?, ?, ?,?, ?, ?, ?, ?)";
-                const createSaleValues = [
-                  numero_factura,
-                  cod_usuario,
-                  producto,
-                  pantalla,
-                  savePerfil,
-                  cod_productoString,
-                  costo,
-                  estado,
-                  dateString,
-                ];
-
-                connection.query(
-                  createSaleQuery,
-                  createSaleValues,
-                  (createError, createResults) => {
-                    if (createError) {
-                      console.error("Error inserting Sale: ", createError);
-                      return next(createError);
-                    }
-
-                    const createdSale = {
-                      numero_factura,
-                      cod_usuario,
-                      producto,
-                      pantalla,
-                      perfil : savePerfil,
-                      cod_producto: cod_productoString,
-                      costo,
-                      estado,
-                      fecha: dateString,
-                    };
-
-                    res.json(createdSale);
-                  }
-                );
-              }
-            );
-          } else {
-            res.status(404).send("No available accounts found");
-          }
-        }
-      );
+    const selectProductQuery = `SELECT * FROM ${producto} WHERE pantalla != 'usado'`;
+    const selectProductResults = await promisify(connection.query).call(
+      connection,
+      selectProductQuery
+    );
+    const selectedProduct = selectProductResults.find((product) => {
+      const screenInt = parseInt(pantalla);
+      const screenUsed = product.usado ? parseInt(product.usado) : 0;
+      return screenInt + screenUsed <= 4;
     });
+
+    if (!selectedProduct) {
+      return res.status(404).send("No available accounts found");
+    }
+
+    const cod_producto = selectedProduct.id;
+    const screenInt = parseInt(pantalla);
+    const screenUsed = selectedProduct.usado
+      ? parseInt(selectedProduct.usado)
+      : 0;
+    const screenUpdate = screenInt + screenUsed;
+    const screenFinally = screenUpdate.toString();
+    const cod_productoString = cod_producto.toString();
+
+    const updateProductQuery = `UPDATE ${producto} SET usado = ? WHERE id = ?`;
+    await promisify(connection.query).call(connection, updateProductQuery, [
+      screenFinally,
+      cod_producto,
+    ]);
+
+    let perfilFinal = "";
+    for (let i = 0; i < screenInt; i++) {
+      let perfil = screenUsed + i + 1;
+      perfilFinal += perfil + ", ";
+    }
+    let savePerfil;
+
+    if (producto === "directv") {
+      savePerfil = "1,2";
+    } else if (producto === "spotify" || producto === "youtube") {
+      savePerfil = "1";
+    } else {
+      savePerfil = perfilFinal.slice(0, -2);
+    }
+
+    const createSaleQuery =
+      "INSERT INTO ventas (numero_factura, cod_usuario, producto, pantalla, perfil, cod_producto, costo, estado, fecha) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    const createSaleValues = [
+      numero_factura,
+      cod_usuario,
+      producto,
+      pantalla,
+      savePerfil,
+      cod_productoString,
+      costo,
+      estado,
+      dateString,
+    ];
+
+    const createSaleResult = await promisify(connection.query).call(
+      connection,
+      createSaleQuery,
+      createSaleValues
+    );
+    const createdSale = {
+      numero_factura,
+      cod_usuario,
+      producto,
+      pantalla,
+      perfil: savePerfil,
+      cod_producto: cod_productoString,
+      costo,
+      estado,
+      fecha: dateString,
+    };
+
+    res.json(createdSale);
   } catch (error) {
-    console.error(error);
+    console.error("Error creating sale: ", error);
     next(error);
   }
 };
 
 exports.updateSale = async (req, res, next) => {
   const { cod_ventas } = req.params;
-
   const {
     numero_factura,
     cod_usuario,
@@ -276,7 +231,17 @@ exports.updateSale = async (req, res, next) => {
   } = req.body;
 
   try {
-    const sql = `UPDATE ventas SET numero_factura = IFNULL(?, numero_factura), cod_usuario = IFNULL(?, cod_usuario), producto = IFNULL(?, producto), pantalla = IFNULL(?, pantalla), cod_producto = IFNULL(?, cod_producto), costo = IFNULL(?, costo), estado = IFNULL(?, estado), fecha = IFNULL(?, fecha) WHERE cod_ventas = ?`;
+    const sql = `UPDATE ventas 
+                 SET numero_factura = IFNULL(?, numero_factura), 
+                     cod_usuario = IFNULL(?, cod_usuario), 
+                     producto = IFNULL(?, producto), 
+                     pantalla = IFNULL(?, pantalla), 
+                     cod_producto = IFNULL(?, cod_producto), 
+                     costo = IFNULL(?, costo), 
+                     estado = IFNULL(?, estado), 
+                     fecha = IFNULL(?, fecha) 
+                 WHERE cod_ventas = ?`;
+
     const values = [
       numero_factura,
       cod_usuario,
@@ -289,67 +254,63 @@ exports.updateSale = async (req, res, next) => {
       cod_ventas,
     ];
 
-    connection.query(sql, values, (error, results) => {
-      if (error) {
-        console.error("Error updating Sale: ", error);
-        res.status(500).send("Error en el server");
-        return;
-      }
+    const result = await promisify(connection.query).call(
+      connection,
+      sql,
+      values
+    );
+
+    if (result.affectedRows === 0) {
+      res.status(404).send("Sale not found");
+    } else {
       res.send("Sale updated successfully");
-    });
+    }
   } catch (error) {
-    res.send("Error: " + JSON.stringify(error)).status(500);
-    console.error(error);
+    console.error("Error updating Sale: ", error);
+    res.status(500).send("Error en el servidor");
     next(error);
   }
 };
 
-exports.deleteSale = (req, res, next) => {
+exports.deleteSale = async (req, res, next) => {
   try {
     const { cod_ventas } = req.params;
 
     // Obtener los datos de la venta que se va a eliminar
-    const getSaleQuery = `SELECT * FROM ventas WHERE cod_ventas = ${cod_ventas}`;
+    const getSaleQuery = `SELECT * FROM ventas WHERE cod_ventas = ?`;
+    const saleResults = await promisify(connection.query).call(
+      connection,
+      getSaleQuery,
+      [cod_ventas]
+    );
 
-    connection.query(getSaleQuery, (error, saleResults) => {
-      if (error) {
-        console.error("Error getting sale: ", error);
-        return next(error);
-      }
+    if (saleResults.length === 0) {
+      // No se encontró la venta
+      return res.status(404).send("Sale not found");
+    }
 
-      if (saleResults.length === 0) {
-        // No se encontró la venta
-        return res.status(404).send("Sale not found");
-      }
+    const sale = saleResults[0];
+    const { pantalla, cod_producto } = sale;
 
-      const sale = saleResults[0];
-      const { pantalla, cod_producto } = sale;
+    // Actualizar la tabla del servicio
+    const updateServiceQuery = `UPDATE ${sale.producto} SET usado = usado - ? WHERE id = ?`;
+    const updateServiceValues = [pantalla, cod_producto];
 
-      // Actualizar la tabla del servicio
-      const updateServiceQuery = `UPDATE ${sale.producto} SET usado = usado - ? WHERE id = ?`;
-      const updateServiceValues = [pantalla, cod_producto];
+    await promisify(connection.query).call(
+      connection,
+      updateServiceQuery,
+      updateServiceValues
+    );
 
-      connection.query(updateServiceQuery, updateServiceValues, (updateError) => {
-        if (updateError) {
-          console.error("Error updating service: ", updateError);
-          return next(updateError);
-        }
+    // Eliminar la venta de la tabla de ventas
+    const deleteSaleQuery = `DELETE FROM ventas WHERE cod_ventas = ?`;
+    await promisify(connection.query).call(connection, deleteSaleQuery, [
+      cod_ventas,
+    ]);
 
-        // Eliminar la venta de la tabla de ventas
-        const deleteSaleQuery = `DELETE FROM ventas WHERE cod_ventas = ${cod_ventas}`;
-
-        connection.query(deleteSaleQuery, (deleteError) => {
-          if (deleteError) {
-            console.error("Error deleting sale: ", deleteError);
-            return next(deleteError);
-          }
-
-          res.send("Sale deleted");
-        });
-      });
-    });
+    res.send("Sale deleted");
   } catch (error) {
-    console.error(error);
+    console.error("Error deleting sale: ", error);
     next(error);
   }
 };

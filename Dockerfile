@@ -1,8 +1,18 @@
 # Utiliza una imagen base de Node.js
-FROM node:18.15
+FROM node:20.9
 
 # Establece el directorio de trabajo en el contenedor
 WORKDIR /back
+
+# Define las variables de entorno
+ENV APP_HOST=http://localhost
+ENV PORT=9000
+ENV DB_HOST=localhost
+ENV DB_PORT=3306
+ENV DB_USER=root
+ENV DB_PASS=
+ENV DATABASE=tramitaya
+ENV SECRET_JWT=kG5-BjqhF_H&7yU/&iJ%k/+/pMFG_x@Wgr4XLXh&ZnjEM?
 
 # Copia los archivos package.json y package-lock.json al directorio de trabajo
 COPY package*.json ./

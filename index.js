@@ -3,6 +3,7 @@ require("dotenv").config();
 const path = require("path");
 const cors = require("cors");
 const morgan = require("morgan");
+const moment = require("moment-timezone");
 const { connection } = require("./DataBase/db.js");
 
 //Documentation
@@ -61,8 +62,12 @@ morgan.token("custom", function (req, res) {
   const resetColor = "\x1b[0m"; // Reset color
   const method = req.method;
   const url = req.originalUrl || req.url;
+  // Obtener la fecha y hora local
+  const localDateTime = moment()
+    .tz("America/Bogota")
+    .format("YYYY-MM-DD HH:mm:ss");
 
-  return `${status}[${method}]${resetColor} ${res.statusCode} ${url} - Usuario: ${dataUser.user}, Email: ${dataUser.emailUser} - Ip: ${dataUser.ip} - Origen: ${dataUser.origin} - Fecha: ${new Date()} - ${res.get("X-Response-Time")} ms`;
+  return `${status}[${method}]${resetColor} ${res.statusCode} ${url} - Usuario: ${dataUser.user}, Email: ${dataUser.emailUser} - Ip: ${dataUser.ip} - Origen: ${dataUser.origin} - Fecha: ${localDateTime} - ${res.get("X-Response-Time")} ms`;
 });
 
 app.use(cors(corsOptions));

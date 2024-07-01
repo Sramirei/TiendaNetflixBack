@@ -2,11 +2,6 @@ const { connection } = require("../DataBase/db");
 const { promisify } = require("util");
 const moment = require("moment-timezone");
 
-// Obtener la fecha y hora local
-const localDateTime = moment()
-  .tz("America/Bogota")
-  .format("YYYY-MM-DD HH:mm:ss");
-
 exports.getAllSales = (req, res, next) => {
   const sql = `SELECT v.cod_ventas, v.cod_usuario, u.identificacion, v.numero_factura, CONCAT(u.nombre, ' ', u.apellido) AS nombre_usuario, v.producto, v.pantalla, 
        CASE 
@@ -126,6 +121,10 @@ ORDER BY v.cod_ventas DESC`;
 
 exports.createdSale = async (req, res, next) => {
   try {
+    // Obtener la fecha y hora local
+    const localDateTime = moment()
+      .tz("America/Bogota")
+      .format("YYYY-MM-DD HH:mm:ss");
     const dateString = localDateTime;
 
     const { cod_usuario, producto, pantalla, costo, estado } = req.body;
